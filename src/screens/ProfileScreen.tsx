@@ -1,16 +1,27 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeProvider';
 
 export const ProfileScreen = () => {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Top App Bar */}
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+        <TouchableOpacity 
+          style={styles.iconButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={[styles.actionIcon, { color: theme.colors.primary }]}>←</Text>
+        </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.primary }]}>TaskFlow</Text>
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity 
+          style={styles.iconButton}
+          onPress={() => navigation.navigate('Settings')}
+        >
           <Text style={[styles.actionIcon, { color: theme.colors.primary }]}>⚙️</Text>
         </TouchableOpacity>
       </View>

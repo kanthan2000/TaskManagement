@@ -1,24 +1,50 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, SafeAreaView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeProvider';
+import { useState } from 'react';
+import { useTaskStore } from '../store/useTaskStore';
 
 export const TasksScreen = () => {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>();
+  const tasks = useTaskStore(state => state.tasks);
+  const [activeTab, setActiveTab] = useState('All');
+
+  const tabs = ['All', 'Pending', 'Completed', 'Daily', 'Scheduled'];
+
+  const filteredTasks = tasks.filter(task => {
+    if (activeTab === 'All') return true;
+    if (activeTab === 'Pending') return !task.completed;
+    if (activeTab === 'Completed') return task.completed;
+    if (activeTab === 'Daily') return task.repeat === 'Daily';
+    if (activeTab === 'Scheduled') {
+      const today = new Date().toISOString().split('T')[0];
+      return task.date > today;
+    }
+    return true;
+  });
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* TopAppBar */}
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
         <View style={styles.headerLeft}>
-          <View style={[styles.avatarContainer, { backgroundColor: theme.colors.surfaceVariant, borderColor: theme.colors.outlineVariant }]}>
+          <TouchableOpacity 
+            style={[styles.avatarContainer, { backgroundColor: theme.colors.surfaceVariant, borderColor: theme.colors.outlineVariant }]}
+            onPress={() => navigation.navigate('Profile')}
+          >
              <Image 
                 source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDxSEqnUED-nVCe4HKRygEEZk74Jc0GSCz43Wkqi_vRPDRxv2D-SX7tVvJ7sVHFjZyUmZ8l3ncsUVu03aMt4FXs6a_z-tye8EWP6EBjYxaCadhMEySsndavdad0IuDipD3dtcNisI0uCnFDmlEcXs8FKYnBBDf2NMwxTy3-x5AUgSOy4142v-5LD0ghhPvZDy5XmKqwoP0Il6wIhcs4lKHW9Pjju1RX47s0GtmHi7uJjNHA8hP97b2-n69t9l3ZKabJJZFNLOY5wdA' }} 
                 style={styles.avatar} 
               />
-          </View>
+          </TouchableOpacity>
           <Text style={[styles.appTitle, { color: theme.colors.primary }]}>TaskFlow</Text>
         </View>
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity 
+          style={styles.iconButton}
+          onPress={() => navigation.navigate('Notifications')}
+        >
           <Text style={[styles.iconText, { color: theme.colors.onSurfaceVariant }]}>🔔</Text>
         </TouchableOpacity>
       </View>
@@ -45,108 +71,57 @@ export const TasksScreen = () => {
 
           {/* Tab Navigation */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabNav}>
-            <TouchableOpacity style={[styles.tabButton, { backgroundColor: theme.colors.primary }]}>
-              <Text style={[styles.tabText, { color: theme.colors.onPrimary }]}>All</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.tabButton]}>
-              <Text style={[styles.tabText, { color: theme.colors.onSurfaceVariant }]}>Pending</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.tabButton]}>
-              <Text style={[styles.tabText, { color: theme.colors.onSurfaceVariant }]}>Completed</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.tabButton]}>
-              <Text style={[styles.tabText, { color: theme.colors.onSurfaceVariant }]}>Daily</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.tabButton]}>
-              <Text style={[styles.tabText, { color: theme.colors.onSurfaceVariant }]}>Scheduled</Text>
-            </TouchableOpacity>
+            {tabs.map(tab => (
+              <TouchableOpacity 
+                key={tab}
+                style={[styles.tabButton, activeTab === tab ? { backgroundColor: theme.colors.primary } : {}]}
+                onPress={() => setActiveTab(tab)}
+              >
+                <Text style={[styles.tabText, { color: activeTab === tab ? theme.colors.onPrimary : theme.colors.onSurfaceVariant }]}>{tab}</Text>
+              </TouchableOpacity>
+            ))}
           </ScrollView>
         </View>
 
         {/* Task List */}
         <View style={styles.listSection}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Today's Focus</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>{activeTab} Tasks</Text>
 
-          {/* Task Card 1: High Priority */}
-          <View style={[styles.taskCard, { backgroundColor: theme.colors.surface, borderLeftColor: theme.colors.error }]}>
-            <TouchableOpacity style={[styles.checkbox, { borderColor: theme.colors.outlineVariant }]} />
-            <View style={styles.taskInfo}>
-              <View style={styles.taskHeader}>
-                <Text style={[styles.taskTitle, { color: theme.colors.onSurface }]}>Review Quarterly Budget</Text>
-                <View style={[styles.badgeContainer, { backgroundColor: theme.colors.errorContainer }]}>
-                  <Text style={[styles.badgeText, { color: theme.colors.onErrorContainer }]}>High</Text>
+          {filteredTasks.length === 0 ? (
+            <Text style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center', marginTop: 20 }}>No tasks found in this category.</Text>
+          ) : (
+            filteredTasks.map(task => (
+              <TouchableOpacity 
+                key={task.id}
+                style={[styles.taskCard, { backgroundColor: theme.colors.surface, borderLeftColor: task.priority === 'High' ? theme.colors.error : task.priority === 'Low' ? theme.colors.tertiary : theme.colors.primary }]}
+                onPress={() => navigation.navigate('TaskDetails', { taskId: task.id })}
+              >
+                <TouchableOpacity style={[styles.checkbox, { borderColor: theme.colors.outlineVariant }, task.completed && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]} />
+                <View style={styles.taskInfo}>
+                  <View style={styles.taskHeader}>
+                    <Text style={[styles.taskTitle, { color: theme.colors.onSurface }, task.completed && { textDecorationLine: 'line-through', opacity: 0.6 }]}>{task.title}</Text>
+                    <View style={[styles.badgeContainer, { backgroundColor: task.priority === 'High' ? theme.colors.errorContainer : theme.colors.primaryContainer }]}>
+                      <Text style={[styles.badgeText, { color: task.priority === 'High' ? theme.colors.onErrorContainer : theme.colors.onPrimaryContainer }]}>{task.priority}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.taskMetaRow}>
+                    <View style={[styles.badgeContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
+                      <Text style={[styles.badgeText, { color: theme.colors.onSurfaceVariant }]}>{task.category}</Text>
+                    </View>
+                    <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>⏱ {task.time}</Text>
+                  </View>
                 </View>
-              </View>
-              <View style={styles.taskMetaRow}>
-                <View style={[styles.badgeContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
-                  <Text style={[styles.badgeText, { color: theme.colors.onSurfaceVariant }]}>Work</Text>
-                </View>
-                <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>⏱ 10:00 AM</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Task Card 2: Medium Priority */}
-          <View style={[styles.taskCard, { backgroundColor: theme.colors.surface, borderLeftColor: theme.colors.secondary }]}>
-            <TouchableOpacity style={[styles.checkbox, { borderColor: theme.colors.outlineVariant }]} />
-            <View style={styles.taskInfo}>
-              <View style={styles.taskHeader}>
-                <Text style={[styles.taskTitle, { color: theme.colors.onSurface }]}>Team Sync - Project Apollo</Text>
-                <View style={[styles.badgeContainer, { backgroundColor: theme.colors.secondaryContainer }]}>
-                  <Text style={[styles.badgeText, { color: theme.colors.onSecondaryContainer }]}>Medium</Text>
-                </View>
-              </View>
-              <View style={styles.taskMetaRow}>
-                <View style={[styles.badgeContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
-                  <Text style={[styles.badgeText, { color: theme.colors.onSurfaceVariant }]}>Work</Text>
-                </View>
-                <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>📅 2:30 PM</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Task Card 3: Low Priority */}
-          <View style={[styles.taskCard, { backgroundColor: theme.colors.surface, borderLeftColor: theme.colors.tertiary }]}>
-            <TouchableOpacity style={[styles.checkbox, { borderColor: theme.colors.outlineVariant }]} />
-            <View style={styles.taskInfo}>
-              <View style={styles.taskHeader}>
-                <Text style={[styles.taskTitle, { color: theme.colors.onSurface }]}>Grocery Shopping</Text>
-                <View style={[styles.badgeContainer, { backgroundColor: theme.colors.tertiaryContainer }]}>
-                  <Text style={[styles.badgeText, { color: theme.colors.onTertiaryContainer }]}>Low</Text>
-                </View>
-              </View>
-              <View style={styles.taskMetaRow}>
-                <View style={[styles.badgeContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
-                  <Text style={[styles.badgeText, { color: theme.colors.onSurfaceVariant }]}>Personal</Text>
-                </View>
-                <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>📍 Whole Foods</Text>
-              </View>
-            </View>
-          </View>
-
-          <Text style={[styles.sectionTitle, { color: theme.colors.onSurface, marginTop: 32 }]}>Upcoming</Text>
-
-          {/* Task Card 4: Scheduled */}
-          <View style={[styles.taskCard, { backgroundColor: theme.colors.surface, borderLeftColor: theme.colors.outlineVariant, opacity: 0.8 }]}>
-            <TouchableOpacity style={[styles.checkbox, { borderColor: theme.colors.outlineVariant }]} />
-            <View style={styles.taskInfo}>
-              <View style={styles.taskHeader}>
-                <Text style={[styles.taskTitle, { color: theme.colors.onSurface }]}>Update Portfolio Site</Text>
-              </View>
-              <View style={styles.taskMetaRow}>
-                <View style={[styles.badgeContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
-                  <Text style={[styles.badgeText, { color: theme.colors.onSurfaceVariant }]}>Creative</Text>
-                </View>
-                <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>📅 Tomorrow</Text>
-              </View>
-            </View>
-          </View>
-
+              </TouchableOpacity>
+            ))
+          )}
         </View>
       </ScrollView>
 
       {/* FAB */}
-      <TouchableOpacity style={[styles.fab, { backgroundColor: theme.colors.primaryContainer }]}>
+      <TouchableOpacity 
+        style={[styles.fab, { backgroundColor: theme.colors.primaryContainer }]}
+        onPress={() => navigation.navigate('CreateTask')}
+      >
         <Text style={[styles.fabIcon, { color: theme.colors.onPrimaryContainer }]}>+</Text>
       </TouchableOpacity>
     </SafeAreaView>

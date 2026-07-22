@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Switch, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeProvider';
+import { useTaskStore } from '../store/useTaskStore';
+import { Task } from '../types';
 
 const CATEGORIES = ['Work', 'Personal', 'Health', 'Finance'];
 const PRIORITIES = [
@@ -11,21 +14,60 @@ const PRIORITIES = [
 
 export const EditTaskScreen = () => {
   const { theme } = useTheme();
-  const [selectedCategory, setSelectedCategory] = useState('Work');
-  const [selectedPriority, setSelectedPriority] = useState('High');
-  const [remindMe, setRemindMe] = useState(true);
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const { taskId } = route.params || {};
+  
+  const tasks = useTaskStore(state => state.tasks);
+  const editTask = useTaskStore(state => state.editTask);
+  const removeTask = useTaskStore(state => state.removeTask);
+  
+  const taskToEdit = tasks.find(t => t.id === taskId);
+
+  const [selectedCategory, setSelectedCategory] = useState(taskToEdit?.category || 'Work');
+  const [selectedPriority, setSelectedPriority] = useState<'Low'|'Medium'|'High'>((taskToEdit?.priority as any) || 'Medium');
+  const [remindMe, setRemindMe] = useState(taskToEdit?.remindMe || false);
+  const [title, setTitle] = useState(taskToEdit?.title || '');
+  const [description, setDescription] = useState(taskToEdit?.description || '');
+
+  const handleSave = async () => {
+    if (!taskToEdit || !title.trim()) return;
+    const updatedTask: Task = {
+      ...taskToEdit,
+      title,
+      description,
+      category: selectedCategory,
+      priority: selectedPriority,
+      remindMe
+    };
+    await editTask(updatedTask);
+    navigation.goBack();
+  };
+
+  const handleDelete = async () => {
+    if (taskToEdit) {
+      await removeTask(taskToEdit.id);
+      navigation.navigate('MainTabs');
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Top App Bar */}
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => navigation.goBack()}
+          >
             <Text style={[styles.iconText, { color: theme.colors.primary }]}>←</Text>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.primary }]}>Edit Task</Text>
         </View>
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity 
+          style={styles.iconButton}
+          onPress={handleDelete}
+        >
           <Text style={[styles.iconText, { color: theme.colors.error }]}>🗑</Text>
         </TouchableOpacity>
       </View>
@@ -41,7 +83,8 @@ export const EditTaskScreen = () => {
             <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Task Title</Text>
             <TextInput 
               style={[styles.titleInput, { color: theme.colors.primary }]} 
-              value="Review Quarterly Budget"
+              value={title}
+              onChangeText={setTitle}
               placeholder="What needs to be done?"
               placeholderTextColor={theme.colors.outlineVariant}
             />
@@ -49,7 +92,8 @@ export const EditTaskScreen = () => {
             <Text style={[styles.label, { color: theme.colors.onSurfaceVariant, marginTop: 12 }]}>Description</Text>
             <TextInput 
               style={[styles.descInput, { color: theme.colors.onSurfaceVariant }]} 
-              value="Finish the excel sheet and share with the finance team."
+              value={description}
+              onChangeText={setDescription}
               placeholder="Add more details..."
               placeholderTextColor={theme.colors.outlineVariant}
               multiline
@@ -66,11 +110,11 @@ export const EditTaskScreen = () => {
               </View>
               <View style={styles.bentoItems}>
                 <View style={[styles.bentoItem, { backgroundColor: theme.colors.surfaceContainer }]}>
-                  <Text style={[styles.bentoItemText, { color: theme.colors.onSurface }]}>Oct 24, 2023</Text>
+                  <Text style={[styles.bentoItemText, { color: theme.colors.onSurface }]}>{taskToEdit?.date || 'Today'}</Text>
                   <Text style={[styles.bentoItemIcon, { color: theme.colors.outline }]}>✎</Text>
                 </View>
                 <View style={[styles.bentoItem, { backgroundColor: theme.colors.surfaceContainer }]}>
-                  <Text style={[styles.bentoItemText, { color: theme.colors.onSurface }]}>10:00 AM</Text>
+                  <Text style={[styles.bentoItemText, { color: theme.colors.onSurface }]}>{taskToEdit?.time || '10:00 AM'}</Text>
                   <Text style={[styles.bentoItemIcon, { color: theme.colors.outline }]}>⏱</Text>
                 </View>
               </View>
@@ -95,7 +139,7 @@ export const EditTaskScreen = () => {
                 <View style={[styles.divider, { backgroundColor: theme.colors.outlineVariant, opacity: 0.2 }]} />
                 <View style={styles.alertItem}>
                   <Text style={[styles.alertItemText, { color: theme.colors.onSurface }]}>Repeat</Text>
-                  <Text style={[styles.alertValue, { color: theme.colors.primary }]}>Weekly ▼</Text>
+                  <Text style={[styles.alertValue, { color: theme.colors.primary }]}>{taskToEdit?.repeat || 'None'} ▼</Text>
                 </View>
               </View>
             </View>
@@ -122,7 +166,7 @@ export const EditTaskScreen = () => {
                       { borderColor: theme.colors.outlineVariant },
                       isActive && activeStyle
                     ]}
-                    onPress={() => setSelectedPriority(priority.id)}
+                    onPress={() => setSelectedPriority(priority.id as any)}
                   >
                     <View style={styles.priorityListLeft}>
                       <Text style={[styles.priorityListIcon, { color: isActive ? (priority.id === 'High' ? theme.colors.onErrorContainer : theme.colors.onSurface) : theme.colors.onSurfaceVariant }]}>{priority.icon}</Text>
@@ -184,11 +228,17 @@ export const EditTaskScreen = () => {
 
       {/* Bottom Actions Layer */}
       <View style={[styles.footer, { backgroundColor: 'rgba(255, 255, 255, 0.9)', borderTopColor: 'rgba(0,0,0,0.1)' }]}>
-        <TouchableOpacity style={[styles.deleteButton, { borderColor: theme.colors.error }]}>
+        <TouchableOpacity 
+          style={[styles.deleteButton, { borderColor: theme.colors.error }]}
+          onPress={handleDelete}
+        >
           <Text style={[styles.deleteIcon, { color: theme.colors.error }]}>🗑</Text>
           <Text style={[styles.deleteText, { color: theme.colors.error }]}>Delete Task</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}>
+        <TouchableOpacity 
+          style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}
+          onPress={handleSave}
+        >
           <Text style={[styles.saveIcon, { color: theme.colors.onPrimary }]}>💾</Text>
           <Text style={[styles.saveText, { color: theme.colors.onPrimary }]}>Save Changes</Text>
         </TouchableOpacity>

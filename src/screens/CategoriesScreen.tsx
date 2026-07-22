@@ -1,24 +1,49 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeProvider';
+import { useTaskStore } from '../store/useTaskStore';
 
 export const CategoriesScreen = () => {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>();
+
+  const tasks = useTaskStore(state => state.tasks);
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(t => t.completed).length;
+  const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  const categories = [
+    { id: 'Personal', icon: '👤', color: theme.colors.primary, bg: theme.colors.primaryFixed },
+    { id: 'Work', icon: '💼', color: theme.colors.secondary, bg: theme.colors.secondaryFixed },
+    { id: 'Health', icon: '🏋️', color: theme.colors.tertiary, bg: theme.colors.tertiaryFixed },
+    { id: 'Finance', icon: '💳', color: theme.colors.error, bg: theme.colors.errorContainer },
+    { id: 'Study', icon: '🎓', color: theme.colors.onSecondaryContainer, bg: theme.colors.secondaryContainer },
+    { id: 'Shopping', icon: '🛒', color: theme.colors.onTertiaryContainer, bg: theme.colors.tertiaryContainer },
+    { id: 'Family', icon: '👨‍👩‍👧', color: theme.colors.onPrimaryFixedVariant, bg: theme.colors.primaryFixedDim },
+  ];
+
+  const getCategoryCount = (categoryName: string) => {
+    return tasks.filter(t => t.category === categoryName).length;
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Top App Bar */}
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
         <View style={styles.headerLeft}>
-          <View style={[styles.avatarContainer, { backgroundColor: theme.colors.primaryFixed }]}>
-            <Image 
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCCqma6NY9qji3jo5LSvF7G1T_gUjhRhwD_Mo7cB5Jnw8sBY4kM2ZrOiNTYbWasJAOB6aOy1Tw94_vHrGhJQH4IZ4RjSyUkgplja7GphNhLMfaz9SOqNVkK1JyD9vGFT8z_8TlsPNGeDpJ5p4brOSd2eCmD9FU7-j1kYbCKSLEuL1rOmm_i5GoImYP_tTkG7yCZ5wZe5LuehkkTs-IqOL4W1xyr0Nj75CjywZyGsCt1egesG4wREJBHyqFyze3JdnNZX4Ct09DyMw0' }} 
-              style={styles.avatar} 
-            />
-          </View>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={[styles.iconText, { color: theme.colors.primary }]}>←</Text>
+          </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.primary }]}>Categories</Text>
         </View>
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity 
+          style={styles.iconButton}
+          onPress={() => navigation.navigate('Notifications')}
+        >
           <Text style={[styles.iconText, { color: theme.colors.onSurfaceVariant }]}>🔔</Text>
         </TouchableOpacity>
       </View>
@@ -29,14 +54,14 @@ export const CategoriesScreen = () => {
           <View style={[styles.summaryCard, { backgroundColor: theme.colors.primaryContainer }]}>
             <View style={styles.summaryContent}>
               <Text style={[styles.summaryLabel, { color: theme.colors.onPrimaryContainer }]}>Efficiency Overview</Text>
-              <Text style={[styles.summaryValue, { color: theme.colors.onPrimaryContainer }]}>8 Categories</Text>
-              <Text style={[styles.summaryDesc, { color: theme.colors.onPrimaryContainer }]}>You have 52 active tasks across your life.</Text>
+              <Text style={[styles.summaryValue, { color: theme.colors.onPrimaryContainer }]}>{categories.length} Categories</Text>
+              <Text style={[styles.summaryDesc, { color: theme.colors.onPrimaryContainer }]}>You have {totalTasks} active tasks across your life.</Text>
             </View>
             <View style={styles.progressCircle}>
               {/* Fake progress circle for mockup */}
               <View style={[styles.circleRing, { borderColor: theme.colors.onPrimaryContainer }]} />
               <View style={styles.circleTextContainer}>
-                <Text style={[styles.circleText, { color: theme.colors.onPrimaryContainer }]}>75%</Text>
+                <Text style={[styles.circleText, { color: theme.colors.onPrimaryContainer }]}>{completionPercent}%</Text>
               </View>
             </View>
             {/* Decorative element */}
@@ -46,85 +71,24 @@ export const CategoriesScreen = () => {
 
         {/* Categories Grid */}
         <View style={styles.grid}>
-          {/* Personal */}
-          <View style={[styles.categoryCard, { backgroundColor: theme.colors.surfaceContainerLowest, borderColor: theme.colors.outlineVariant, borderLeftColor: theme.colors.primary }]}>
-            <View style={[styles.categoryIconBg, { backgroundColor: theme.colors.primaryFixed }]}>
-              <Text style={[styles.categoryIcon, { color: theme.colors.primary }]}>👤</Text>
-            </View>
-            <View>
-              <Text style={[styles.categoryTitle, { color: theme.colors.onSurface }]}>Personal</Text>
-              <Text style={[styles.categoryTasks, { color: theme.colors.onSurfaceVariant }]}>12 Tasks</Text>
-            </View>
-          </View>
-
-          {/* Work */}
-          <View style={[styles.categoryCard, { backgroundColor: theme.colors.surfaceContainerLowest, borderColor: theme.colors.outlineVariant, borderLeftColor: theme.colors.secondary }]}>
-            <View style={[styles.categoryIconBg, { backgroundColor: theme.colors.secondaryFixed }]}>
-              <Text style={[styles.categoryIcon, { color: theme.colors.secondary }]}>💼</Text>
-            </View>
-            <View>
-              <Text style={[styles.categoryTitle, { color: theme.colors.onSurface }]}>Work</Text>
-              <Text style={[styles.categoryTasks, { color: theme.colors.onSurfaceVariant }]}>24 Tasks</Text>
-            </View>
-          </View>
-
-          {/* Health */}
-          <View style={[styles.categoryCard, { backgroundColor: theme.colors.surfaceContainerLowest, borderColor: theme.colors.outlineVariant, borderLeftColor: theme.colors.tertiary }]}>
-            <View style={[styles.categoryIconBg, { backgroundColor: theme.colors.tertiaryFixed }]}>
-              <Text style={[styles.categoryIcon, { color: theme.colors.tertiary }]}>🏋️</Text>
-            </View>
-            <View>
-              <Text style={[styles.categoryTitle, { color: theme.colors.onSurface }]}>Health</Text>
-              <Text style={[styles.categoryTasks, { color: theme.colors.onSurfaceVariant }]}>5 Tasks</Text>
-            </View>
-          </View>
-
-          {/* Finance */}
-          <View style={[styles.categoryCard, { backgroundColor: theme.colors.surfaceContainerLowest, borderColor: theme.colors.outlineVariant, borderLeftColor: theme.colors.error }]}>
-            <View style={[styles.categoryIconBg, { backgroundColor: theme.colors.errorContainer }]}>
-              <Text style={[styles.categoryIcon, { color: theme.colors.error }]}>💳</Text>
-            </View>
-            <View>
-              <Text style={[styles.categoryTitle, { color: theme.colors.onSurface }]}>Finance</Text>
-              <Text style={[styles.categoryTasks, { color: theme.colors.onSurfaceVariant }]}>3 Tasks</Text>
-            </View>
-          </View>
-
-          {/* Study */}
-          <View style={[styles.categoryCard, { backgroundColor: theme.colors.surfaceContainerLowest, borderColor: theme.colors.outlineVariant, borderLeftColor: theme.colors.onSecondaryContainer }]}>
-            <View style={[styles.categoryIconBg, { backgroundColor: theme.colors.secondaryContainer }]}>
-              <Text style={[styles.categoryIcon, { color: theme.colors.onSecondaryContainer }]}>🎓</Text>
-            </View>
-            <View>
-              <Text style={[styles.categoryTitle, { color: theme.colors.onSurface }]}>Study</Text>
-              <Text style={[styles.categoryTasks, { color: theme.colors.onSurfaceVariant }]}>8 Tasks</Text>
-            </View>
-          </View>
-
-          {/* Shopping */}
-          <View style={[styles.categoryCard, { backgroundColor: theme.colors.surfaceContainerLowest, borderColor: theme.colors.outlineVariant, borderLeftColor: theme.colors.onTertiaryContainer }]}>
-            <View style={[styles.categoryIconBg, { backgroundColor: theme.colors.tertiaryContainer }]}>
-              <Text style={[styles.categoryIcon, { color: theme.colors.onTertiaryContainer }]}>🛒</Text>
-            </View>
-            <View>
-              <Text style={[styles.categoryTitle, { color: theme.colors.onSurface }]}>Shopping</Text>
-              <Text style={[styles.categoryTasks, { color: theme.colors.onSurfaceVariant }]}>0 Tasks</Text>
-            </View>
-          </View>
-
-          {/* Family */}
-          <View style={[styles.categoryCard, { backgroundColor: theme.colors.surfaceContainerLowest, borderColor: theme.colors.outlineVariant, borderLeftColor: theme.colors.onPrimaryFixedVariant }]}>
-            <View style={[styles.categoryIconBg, { backgroundColor: theme.colors.primaryFixedDim }]}>
-              <Text style={[styles.categoryIcon, { color: theme.colors.onPrimaryFixedVariant }]}>👨‍👩‍👧</Text>
-            </View>
-            <View>
-              <Text style={[styles.categoryTitle, { color: theme.colors.onSurface }]}>Family</Text>
-              <Text style={[styles.categoryTasks, { color: theme.colors.onSurfaceVariant }]}>0 Tasks</Text>
-            </View>
-          </View>
+          {categories.map((cat, idx) => (
+            <TouchableOpacity 
+              key={cat.id}
+              style={[styles.categoryCard, { backgroundColor: theme.colors.surfaceContainerLowest, borderColor: theme.colors.outlineVariant, borderLeftColor: cat.color }]}
+              onPress={() => navigation.navigate('Tasks', { category: cat.id })}
+            >
+              <View style={[styles.categoryIconBg, { backgroundColor: cat.bg }]}>
+                <Text style={[styles.categoryIcon, { color: cat.color }]}>{cat.icon}</Text>
+              </View>
+              <View>
+                <Text style={[styles.categoryTitle, { color: theme.colors.onSurface }]}>{cat.id}</Text>
+                <Text style={[styles.categoryTasks, { color: theme.colors.onSurfaceVariant }]}>{getCategoryCount(cat.id)} Tasks</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
 
           {/* Custom */}
-          <View style={[styles.categoryCard, { backgroundColor: theme.colors.surfaceContainerLowest, borderColor: theme.colors.outlineVariant, borderLeftColor: theme.colors.outline }]}>
+          <TouchableOpacity style={[styles.categoryCard, { backgroundColor: theme.colors.surfaceContainerLowest, borderColor: theme.colors.outlineVariant, borderLeftColor: theme.colors.outline }]}>
             <View style={[styles.categoryIconBg, { backgroundColor: theme.colors.surfaceContainerHigh }]}>
               <Text style={[styles.categoryIcon, { color: theme.colors.onSurfaceVariant }]}>+</Text>
             </View>
@@ -132,7 +96,7 @@ export const CategoriesScreen = () => {
               <Text style={[styles.categoryTitle, { color: theme.colors.onSurface }]}>Custom</Text>
               <Text style={[styles.categoryTasks, { color: theme.colors.onSurfaceVariant }]}>Manage</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Featured Visual Element */}
@@ -152,7 +116,10 @@ export const CategoriesScreen = () => {
       </ScrollView>
 
       {/* FAB */}
-      <TouchableOpacity style={[styles.fab, { backgroundColor: theme.colors.primary }]}>
+      <TouchableOpacity 
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        onPress={() => navigation.navigate('CreateTask')}
+      >
         <Text style={[styles.fabIcon, { color: theme.colors.onPrimary }]}>+</Text>
       </TouchableOpacity>
     </SafeAreaView>

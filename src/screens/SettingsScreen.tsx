@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Switch, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeProvider';
 
 export const SettingsScreen = () => {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>();
   
   // State for toggles
   const [remindersEnabled, setRemindersEnabled] = useState(true);
@@ -17,8 +19,11 @@ export const SettingsScreen = () => {
       {/* Top App Bar */}
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Text style={[styles.actionIcon, { color: theme.colors.primary }]}>☰</Text>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={[styles.actionIcon, { color: theme.colors.primary }]}>←</Text>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.primary }]}>TaskFlow</Text>
         </View>

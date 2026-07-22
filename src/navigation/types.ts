@@ -12,7 +12,7 @@ export type RootStackParamList = {
   Splash: undefined;
   Onboarding: undefined;
   MainTabs: NavigatorScreenParams<BottomTabParamList>;
-  TaskDetails: { taskId: string } | undefined;
+  TaskDetails: { taskId: string };
   CreateTask: undefined;
   EditTask: { taskId: string };
   Notifications: undefined;

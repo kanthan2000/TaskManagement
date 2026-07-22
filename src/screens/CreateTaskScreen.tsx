@@ -1,21 +1,55 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Switch, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeProvider';
+import { useTaskStore } from '../store/useTaskStore';
+import { Task } from '../types';
 
 const CATEGORIES = ['Work', 'Personal', 'Creative', 'Health', 'Shopping'];
 const PRIORITIES = ['Low', 'Medium', 'High'];
 
 export const CreateTaskScreen = () => {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>();
   const [selectedCategory, setSelectedCategory] = useState('Work');
-  const [selectedPriority, setSelectedPriority] = useState('Medium');
+  const [selectedPriority, setSelectedPriority] = useState<'Low'|'Medium'|'High'>('Medium');
   const [remindMe, setRemindMe] = useState(true);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [time, setTime] = useState('10:00 AM');
+  
+  const addTask = useTaskStore(state => state.addTask);
+
+  const handleSave = async () => {
+    if (!title.trim()) return;
+
+    const newTask: Task = {
+      id: Date.now().toString(),
+      title,
+      description,
+      category: selectedCategory,
+      priority: selectedPriority,
+      date,
+      time,
+      remindMe,
+      repeat: 'None',
+      completed: false,
+      createdAt: new Date().toISOString()
+    };
+
+    await addTask(newTask);
+    navigation.goBack();
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.surface }]}>
       {/* TopAppBar */}
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-        <TouchableOpacity style={[styles.closeButton, { backgroundColor: theme.colors.surfaceContainerLow }]}>
+        <TouchableOpacity 
+          style={[styles.closeButton, { backgroundColor: theme.colors.surfaceContainerLow }]}
+          onPress={() => navigation.goBack()}
+        >
           <Text style={[styles.closeIcon, { color: theme.colors.onSurface }]}>✕</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.onSurface }]}>Add Task</Text>
@@ -39,6 +73,8 @@ export const CreateTaskScreen = () => {
                 }]} 
                 placeholder="What needs to be done?"
                 placeholderTextColor={theme.colors.outline}
+                value={title}
+                onChangeText={setTitle}
               />
             </View>
             <View style={styles.inputGroup}>
@@ -54,6 +90,8 @@ export const CreateTaskScreen = () => {
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
+                value={description}
+                onChangeText={setDescription}
               />
             </View>
           </View>
@@ -92,7 +130,7 @@ export const CreateTaskScreen = () => {
                   <TouchableOpacity 
                     key={priority}
                     style={[styles.priorityBtn, isActive && { backgroundColor: theme.colors.surfaceContainerLowest }]}
-                    onPress={() => setSelectedPriority(priority)}
+                    onPress={() => setSelectedPriority(priority as 'Low'|'Medium'|'High')}
                   >
                     <Text style={[styles.priorityText, { color: isActive ? theme.colors.primary : theme.colors.onSurfaceVariant, fontWeight: isActive ? 'bold' : 'normal' }]}>
                       {priority}
@@ -111,7 +149,11 @@ export const CreateTaskScreen = () => {
               </View>
               <View style={styles.scheduleInputContainer}>
                 <Text style={[styles.scheduleLabel, { color: theme.colors.onSurfaceVariant }]}>Date</Text>
-                <TextInput style={[styles.scheduleInput, { color: theme.colors.onSurface }]} value="Today" />
+                <TextInput 
+                  style={[styles.scheduleInput, { color: theme.colors.onSurface }]} 
+                  value={date} 
+                  onChangeText={setDate}
+                />
               </View>
             </View>
             <View style={[styles.scheduleBox, { backgroundColor: theme.colors.surfaceContainerLowest, borderColor: theme.colors.outlineVariant }]}>
@@ -120,7 +162,11 @@ export const CreateTaskScreen = () => {
               </View>
               <View style={styles.scheduleInputContainer}>
                 <Text style={[styles.scheduleLabel, { color: theme.colors.onSurfaceVariant }]}>Time</Text>
-                <TextInput style={[styles.scheduleInput, { color: theme.colors.onSurface }]} value="10:00 AM" />
+                <TextInput 
+                  style={[styles.scheduleInput, { color: theme.colors.onSurface }]} 
+                  value={time}
+                  onChangeText={setTime}
+                />
               </View>
             </View>
           </View>
@@ -150,10 +196,16 @@ export const CreateTaskScreen = () => {
 
       {/* Bottom Action Buttons */}
       <View style={[styles.footer, { backgroundColor: 'rgba(255, 255, 255, 0.9)' }]}>
-        <TouchableOpacity style={[styles.cancelButton, { borderColor: theme.colors.outlineVariant }]}>
+        <TouchableOpacity 
+          style={[styles.cancelButton, { borderColor: theme.colors.outlineVariant }]}
+          onPress={() => navigation.goBack()}
+        >
           <Text style={[styles.cancelText, { color: theme.colors.onSurfaceVariant }]}>Cancel</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}>
+        <TouchableOpacity 
+          style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}
+          onPress={handleSave}
+        >
           <Text style={[styles.saveIcon, { color: theme.colors.onPrimary }]}>✓</Text>
           <Text style={[styles.saveText, { color: theme.colors.onPrimary }]}>Save Task</Text>
         </TouchableOpacity>

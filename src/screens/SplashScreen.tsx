@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeProvider';
 
 export const SplashScreen = () => {
@@ -11,6 +12,8 @@ export const SplashScreen = () => {
   const slideUpValue = new Animated.Value(20);
   const slideOpacityValue = new Animated.Value(0);
   const progressValue = new Animated.Value(0);
+
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
     // Logo fade & scale
@@ -49,7 +52,13 @@ export const SplashScreen = () => {
       useNativeDriver: false,
     }).start();
 
-  }, []);
+    // Navigate to Onboarding after 3.5s
+    const timer = setTimeout(() => {
+      navigation.replace('Onboarding');
+    }, 3500);
+
+    return () => clearTimeout(timer);
+  }, [navigation]);
 
   const progressWidth = progressValue.interpolate({
     inputRange: [0, 1],

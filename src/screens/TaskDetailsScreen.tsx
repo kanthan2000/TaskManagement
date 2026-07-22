@@ -1,18 +1,56 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeProvider';
+import { useTaskStore } from '../store/useTaskStore';
 
 export const TaskDetailsScreen = () => {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const { taskId } = route.params || {};
+
+  const tasks = useTaskStore(state => state.tasks);
+  const toggleTaskCompletion = useTaskStore(state => state.toggleTaskCompletion);
+  const removeTask = useTaskStore(state => state.removeTask);
+
+  const task = tasks.find(t => t.id === taskId);
+
+  if (!task) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: theme.colors.onSurface }}>Task not found</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 20 }}>
+          <Text style={{ color: theme.colors.primary }}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  const handleToggleComplete = async () => {
+    await toggleTaskCompletion(task.id, !task.completed);
+    navigation.goBack();
+  };
+
+  const handleDelete = async () => {
+    await removeTask(task.id);
+    navigation.goBack();
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity 
+          style={styles.iconButton}
+          onPress={() => navigation.goBack()}
+        >
           <Text style={[styles.iconText, { color: theme.colors.onSurface }]}>←</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.editButton, { backgroundColor: theme.colors.surfaceContainer }]}>
+        <TouchableOpacity 
+          style={[styles.editButton, { backgroundColor: theme.colors.surfaceContainer }]}
+          onPress={() => navigation.navigate('EditTask', { taskId: task.id })}
+        >
           <Text style={[styles.editIcon, { color: theme.colors.primary }]}>✎</Text>
           <Text style={[styles.editText, { color: theme.colors.primary }]}>Edit</Text>
         </TouchableOpacity>
@@ -21,25 +59,27 @@ export const TaskDetailsScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
-          <Text style={[styles.title, { color: theme.colors.onSurface }]}>Review Quarterly Budget</Text>
-          <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
-            Finish the excel sheet and share with the finance team.
-          </Text>
+          <Text style={[styles.title, { color: theme.colors.onSurface }, task.completed && { textDecorationLine: 'line-through', opacity: 0.6 }]}>{task.title}</Text>
+          {!!task.description && (
+            <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
+              {task.description}
+            </Text>
+          )}
         </View>
 
         {/* Status & Categorization */}
         <View style={styles.chipsSection}>
           <View style={[styles.chip, { backgroundColor: theme.colors.surfaceContainerHigh }]}>
-            <View style={[styles.dot, { backgroundColor: theme.colors.outline }]} />
-            <Text style={[styles.chipText, { color: theme.colors.onSurfaceVariant }]}>Pending</Text>
+            <View style={[styles.dot, { backgroundColor: task.completed ? theme.colors.primary : theme.colors.outline }]} />
+            <Text style={[styles.chipText, { color: theme.colors.onSurfaceVariant }]}>{task.completed ? 'Completed' : 'Pending'}</Text>
           </View>
-          <View style={[styles.chip, { backgroundColor: theme.colors.errorContainer }]}>
-            <Text style={[styles.chipIcon, { color: theme.colors.onErrorContainer }]}>!</Text>
-            <Text style={[styles.chipText, { color: theme.colors.onErrorContainer }]}>High Priority</Text>
+          <View style={[styles.chip, { backgroundColor: task.priority === 'High' ? theme.colors.errorContainer : task.priority === 'Low' ? theme.colors.tertiaryContainer : theme.colors.secondaryContainer }]}>
+            <Text style={[styles.chipIcon, { color: task.priority === 'High' ? theme.colors.onErrorContainer : task.priority === 'Low' ? theme.colors.onTertiaryContainer : theme.colors.onSecondaryContainer }]}>!</Text>
+            <Text style={[styles.chipText, { color: task.priority === 'High' ? theme.colors.onErrorContainer : task.priority === 'Low' ? theme.colors.onTertiaryContainer : theme.colors.onSecondaryContainer }]}>{task.priority} Priority</Text>
           </View>
           <View style={[styles.chip, { backgroundColor: theme.colors.primaryContainer }]}>
             <Text style={[styles.chipIcon, { color: theme.colors.onPrimaryContainer }]}>💼</Text>
-            <Text style={[styles.chipText, { color: theme.colors.onPrimaryContainer }]}>Work</Text>
+            <Text style={[styles.chipText, { color: theme.colors.onPrimaryContainer }]}>{task.category}</Text>
           </View>
         </View>
 
@@ -52,8 +92,8 @@ export const TaskDetailsScreen = () => {
             </View>
             <View style={styles.bentoContent}>
               <Text style={[styles.bentoLabel, { color: theme.colors.outline }]}>DATE & TIME</Text>
-              <Text style={[styles.bentoValue, { color: theme.colors.onSurface }]}>Oct 24, 2023</Text>
-              <Text style={[styles.bentoSubValue, { color: theme.colors.onSurfaceVariant }]}>at 10:00 AM</Text>
+              <Text style={[styles.bentoValue, { color: theme.colors.onSurface }]}>{task.date}</Text>
+              <Text style={[styles.bentoSubValue, { color: theme.colors.onSurfaceVariant }]}>at {task.time}</Text>
             </View>
           </View>
 
@@ -64,10 +104,10 @@ export const TaskDetailsScreen = () => {
             </View>
             <View style={styles.bentoContent}>
               <Text style={[styles.bentoLabel, { color: theme.colors.outline }]}>REMINDER</Text>
-              <Text style={[styles.bentoValue, { color: theme.colors.onSurface }]}>15 mins before</Text>
+              <Text style={[styles.bentoValue, { color: theme.colors.onSurface }]}>{task.remindMe ? 'Enabled' : 'Disabled'}</Text>
               <View style={styles.repeatRow}>
                 <Text style={[styles.repeatIcon, { color: theme.colors.onSurfaceVariant }]}>↻</Text>
-                <Text style={[styles.repeatText, { color: theme.colors.onSurfaceVariant }]}>Weekly</Text>
+                <Text style={[styles.repeatText, { color: theme.colors.onSurfaceVariant }]}>{task.repeat}</Text>
               </View>
             </View>
           </View>
@@ -139,11 +179,17 @@ export const TaskDetailsScreen = () => {
 
       {/* Footer Controls */}
       <View style={[styles.footer, { backgroundColor: 'rgba(255, 255, 255, 0.95)', borderTopColor: 'rgba(0,0,0,0.05)' }]}>
-        <TouchableOpacity style={[styles.completeButton, { backgroundColor: theme.colors.primary }]}>
-          <Text style={[styles.completeIcon, { color: theme.colors.onPrimary }]}>✓</Text>
-          <Text style={[styles.completeText, { color: theme.colors.onPrimary }]}>Complete Task</Text>
+        <TouchableOpacity 
+          style={[styles.completeButton, { backgroundColor: task.completed ? theme.colors.surfaceVariant : theme.colors.primary }]}
+          onPress={handleToggleComplete}
+        >
+          <Text style={[styles.completeIcon, { color: task.completed ? theme.colors.onSurfaceVariant : theme.colors.onPrimary }]}>✓</Text>
+          <Text style={[styles.completeText, { color: task.completed ? theme.colors.onSurfaceVariant : theme.colors.onPrimary }]}>{task.completed ? 'Mark Undone' : 'Complete Task'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.deleteButton, { borderColor: 'rgba(186,26,26,0.2)' }]}>
+        <TouchableOpacity 
+          style={[styles.deleteButton, { borderColor: 'rgba(186,26,26,0.2)' }]}
+          onPress={handleDelete}
+        >
           <Text style={[styles.deleteIcon, { color: theme.colors.error }]}>🗑</Text>
         </TouchableOpacity>
       </View>

@@ -1,26 +1,60 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeProvider';
+import { useTaskStore } from '../store/useTaskStore';
 
 export const AnalyticsScreen = () => {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>();
+
+  const tasks = useTaskStore(state => state.tasks);
+  
+  const tasksCompleted = tasks.filter(t => t.completed).length;
+  const totalTasks = tasks.length;
+  const completionRate = totalTasks > 0 ? Math.round((tasksCompleted / totalTasks) * 100) : 0;
+
+  const highPriorityCount = tasks.filter(t => t.priority === 'High').length;
+  const mediumPriorityCount = tasks.filter(t => t.priority === 'Medium').length;
+  const lowPriorityCount = tasks.filter(t => t.priority === 'Low').length;
+
+  // Calculate Category share
+  const categoryCounts = tasks.reduce((acc, task) => {
+    acc[task.category] = (acc[task.category] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const categories = Object.keys(categoryCounts).map(cat => ({
+    name: cat,
+    count: categoryCounts[cat],
+    percent: totalTasks > 0 ? Math.round((categoryCounts[cat] / totalTasks) * 100) : 0,
+    flex: totalTasks > 0 ? categoryCounts[cat] / totalTasks : 0
+  })).sort((a, b) => b.count - a.count);
+
+  const colors = [theme.colors.primary, theme.colors.secondary, theme.colors.tertiary, theme.colors.outline];
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Top App Bar */}
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Text style={[styles.iconText, { color: theme.colors.primary }]}>☰</Text>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={[styles.iconText, { color: theme.colors.primary }]}>←</Text>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.primary }]}>Analytics</Text>
         </View>
-        <View style={[styles.avatarContainer, { borderColor: theme.colors.primaryContainer }]}>
+        <TouchableOpacity 
+          style={[styles.avatarContainer, { borderColor: theme.colors.primaryContainer }]}
+          onPress={() => navigation.navigate('Profile')}
+        >
           <Image 
             source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDPhQWgHh9SuUaKTG8n701x0RXJZ60xBMW46D0gl082nMaL9Rs48z7O9hDO_sSleGNXf54Dnt7ChX_O2jngCUcQHbe8hEgqJrzrFdwkWAvdaqETZVv1VpsJ9FuJeS4DfFga5zxOtobefiA1HMMcuoKPMhxUVdm4aXn9uzxri8sh859evqCsbgKDZSl6xEKR1dYIk9wbFYgC1VYRuLFG_dTqMaNIz0pVlG1z2Us7NIENHKNarB-JXE-RCXydgT4kWvPNot-wAJapnv4' }} 
             style={styles.avatar} 
           />
-        </View>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -36,7 +70,7 @@ export const AnalyticsScreen = () => {
           <View style={[styles.overviewCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
             <Text style={[styles.overviewIcon, { color: theme.colors.primary }]}>☑️</Text>
             <View>
-              <Text style={[styles.overviewValue, { color: theme.colors.primary }]}>124</Text>
+              <Text style={[styles.overviewValue, { color: theme.colors.primary }]}>{tasksCompleted}</Text>
               <Text style={[styles.overviewLabel, { color: theme.colors.onSurfaceVariant }]}>Tasks Completed</Text>
             </View>
           </View>
@@ -45,7 +79,7 @@ export const AnalyticsScreen = () => {
           <View style={[styles.overviewCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
             <Text style={[styles.overviewIcon, { color: theme.colors.secondary }]}>📊</Text>
             <View>
-              <Text style={[styles.overviewValue, { color: theme.colors.secondary }]}>88%</Text>
+              <Text style={[styles.overviewValue, { color: theme.colors.secondary }]}>{completionRate}%</Text>
               <Text style={[styles.overviewLabel, { color: theme.colors.onSurfaceVariant }]}>Completion Rate</Text>
             </View>
           </View>
@@ -100,22 +134,20 @@ export const AnalyticsScreen = () => {
           <View style={[styles.chartCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
             <Text style={[styles.cardTitle, { color: theme.colors.onSurface, marginBottom: 16 }]}>Category Share</Text>
             <View style={styles.categoryList}>
-              {[
-                { name: 'Work', percent: '45%', flex: 0.45, color: theme.colors.primary },
-                { name: 'Personal', percent: '30%', flex: 0.3, color: theme.colors.secondary },
-                { name: 'Health', percent: '15%', flex: 0.15, color: theme.colors.tertiary },
-                { name: 'Others', percent: '10%', flex: 0.1, color: theme.colors.outline },
-              ].map((cat, idx) => (
+              {categories.map((cat, idx) => (
                 <View key={idx} style={styles.categoryItem}>
                   <View style={styles.categoryRow}>
                     <Text style={[styles.categoryName, { color: theme.colors.onSurface }]}>{cat.name}</Text>
-                    <Text style={[styles.categoryPercent, { color: theme.colors.onSurface }]}>{cat.percent}</Text>
+                    <Text style={[styles.categoryPercent, { color: theme.colors.onSurface }]}>{cat.percent}%</Text>
                   </View>
                   <View style={[styles.progressBarBg, { backgroundColor: theme.colors.surfaceVariant }]}>
-                    <View style={[styles.progressBarFill, { backgroundColor: cat.color, flex: cat.flex }]} />
+                    <View style={[styles.progressBarFill, { backgroundColor: colors[idx % colors.length], flex: cat.flex }]} />
                   </View>
                 </View>
               ))}
+              {categories.length === 0 && (
+                <Text style={{ color: theme.colors.onSurfaceVariant }}>No tasks available to show categories.</Text>
+              )}
             </View>
             <TouchableOpacity style={styles.viewDetailsButton}>
               <Text style={[styles.viewDetailsText, { color: theme.colors.primary }]}>View Details</Text>
@@ -132,7 +164,7 @@ export const AnalyticsScreen = () => {
                 <Text style={[styles.priorityIcon, { color: theme.colors.error }]}>🔴</Text>
               </View>
               <View>
-                <Text style={[styles.priorityValue, { color: theme.colors.onSurface }]}>12</Text>
+                <Text style={[styles.priorityValue, { color: theme.colors.onSurface }]}>{highPriorityCount}</Text>
                 <Text style={[styles.priorityLabel, { color: theme.colors.onSurfaceVariant }]}>High Priority</Text>
               </View>
             </View>
@@ -142,7 +174,7 @@ export const AnalyticsScreen = () => {
                 <Text style={[styles.priorityIcon, { color: theme.colors.secondary }]}>🟡</Text>
               </View>
               <View>
-                <Text style={[styles.priorityValue, { color: theme.colors.onSurface }]}>24</Text>
+                <Text style={[styles.priorityValue, { color: theme.colors.onSurface }]}>{mediumPriorityCount}</Text>
                 <Text style={[styles.priorityLabel, { color: theme.colors.onSurfaceVariant }]}>Medium Priority</Text>
               </View>
             </View>
@@ -152,7 +184,7 @@ export const AnalyticsScreen = () => {
                 <Text style={[styles.priorityIcon, { color: theme.colors.tertiary }]}>🟢</Text>
               </View>
               <View>
-                <Text style={[styles.priorityValue, { color: theme.colors.onSurface }]}>8</Text>
+                <Text style={[styles.priorityValue, { color: theme.colors.onSurface }]}>{lowPriorityCount}</Text>
                 <Text style={[styles.priorityLabel, { color: theme.colors.onSurfaceVariant }]}>Low Priority</Text>
               </View>
             </View>

@@ -1,9 +1,23 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeProvider';
+import { useState } from 'react';
+import { useTaskStore } from '../store/useTaskStore';
 
 export const CalendarScreen = () => {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>();
+
+  const tasks = useTaskStore(state => state.tasks);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const tasksForSelectedDate = tasks.filter(t => t.date === selectedDate);
+
+  // Helper for mock calendar date display (simplified for demo)
+  const displayDate = new Date(selectedDate);
+  const dateString = displayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  const monthString = displayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -19,12 +33,15 @@ export const CalendarScreen = () => {
           <TouchableOpacity style={styles.iconButton}>
             <Text style={[styles.iconText, { color: theme.colors.onSurfaceVariant }]}>🔍</Text>
           </TouchableOpacity>
-          <View style={[styles.avatarContainer, { borderColor: theme.colors.outlineVariant }]}>
+          <TouchableOpacity 
+            style={[styles.avatarContainer, { borderColor: theme.colors.outlineVariant }]}
+            onPress={() => navigation.navigate('Profile')}
+          >
             <Image 
               source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBuD0Zh6tX8yU-7RAsxS4tQXzqpHd95s0QJyCmO5-cQeMp0n-F8OcWcUYiY9CWeeie4PyWYmYF1KGriaOAvf2CgzI3FqoRvrZIy1Mr9_ZoQ3GYsaKpSSDEvyqI9frNcMwiPF8MFc_Ypv0bZUl8-rSANG4quHcjiEi543CsNMnhqOaJJ-D8VaE8F2C9-6g4MGuBECFdtrbXUyLLwHqt0fM3g9CQ7hUVafpz4dzWz6qiNDqQIbwTAUUyiN2uTNFv2crqS0cLwoeSHCRQ' }} 
               style={styles.avatar} 
             />
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -32,7 +49,7 @@ export const CalendarScreen = () => {
         {/* Calendar Section */}
         <View style={styles.section}>
           <View style={styles.monthHeader}>
-            <Text style={[styles.monthTitle, { color: theme.colors.onSurface }]}>October 2023</Text>
+            <Text style={[styles.monthTitle, { color: theme.colors.onSurface }]}>{monthString}</Text>
             <View style={styles.monthNav}>
               <TouchableOpacity style={[styles.navButton, { backgroundColor: theme.colors.surfaceContainerLowest }]}>
                 <Text style={{ color: theme.colors.onSurface }}>{'<'}</Text>
@@ -111,80 +128,54 @@ export const CalendarScreen = () => {
 
         {/* Selected Date Header */}
         <View style={styles.selectedDateHeader}>
-          <Text style={[styles.selectedDateTitle, { color: theme.colors.onSurface }]}>Tuesday, Oct 24</Text>
+          <Text style={[styles.selectedDateTitle, { color: theme.colors.onSurface }]}>{dateString}</Text>
           <View style={[styles.taskCountBadge, { backgroundColor: theme.colors.surfaceContainer }]}>
-            <Text style={[styles.taskCountText, { color: theme.colors.onSurfaceVariant }]}>3 Tasks</Text>
+            <Text style={[styles.taskCountText, { color: theme.colors.onSurfaceVariant }]}>{tasksForSelectedDate.length} Tasks</Text>
           </View>
         </View>
 
         {/* Agenda List */}
         <View style={styles.agendaList}>
-          {/* High Priority Task */}
-          <View style={[styles.agendaItem, { backgroundColor: theme.colors.surfaceContainerLowest, borderLeftColor: theme.colors.error }]}>
-            <View style={styles.agendaItemContent}>
-              <View style={[styles.priorityBadge, { backgroundColor: 'rgba(186, 26, 26, 0.1)' }]}>
-                <Text style={[styles.priorityBadgeText, { color: theme.colors.error }]}>HIGH PRIORITY</Text>
-              </View>
-              <Text style={[styles.taskTitle, { color: theme.colors.onSurface }]}>Client Presentation</Text>
-              <View style={styles.taskMetaRow}>
-                <View style={styles.taskMetaItem}>
-                  <Text style={[styles.metaIcon, { color: theme.colors.onSurfaceVariant }]}>⏱</Text>
-                  <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>14:00 - 15:30</Text>
+          {tasksForSelectedDate.length === 0 ? (
+            <Text style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center', marginTop: 20 }}>No tasks scheduled for this date.</Text>
+          ) : (
+            tasksForSelectedDate.map(task => (
+              <TouchableOpacity 
+                key={task.id}
+                style={[styles.agendaItem, { backgroundColor: theme.colors.surfaceContainerLowest, borderLeftColor: task.priority === 'High' ? theme.colors.error : task.priority === 'Low' ? theme.colors.tertiary : theme.colors.secondary }]}
+                onPress={() => navigation.navigate('TaskDetails', { taskId: task.id })}
+              >
+                <View style={styles.agendaItemContent}>
+                  <View style={[styles.priorityBadge, { backgroundColor: task.priority === 'High' ? 'rgba(186, 26, 26, 0.1)' : task.priority === 'Low' ? 'rgba(0, 105, 27, 0.1)' : 'rgba(51, 160, 253, 0.1)' }]}>
+                    <Text style={[styles.priorityBadgeText, { color: task.priority === 'High' ? theme.colors.error : task.priority === 'Low' ? theme.colors.tertiary : theme.colors.secondary }]}>{task.priority.toUpperCase()} PRIORITY</Text>
+                  </View>
+                  <Text style={[styles.taskTitle, { color: theme.colors.onSurface }, task.completed && { textDecorationLine: 'line-through', opacity: 0.6 }]}>{task.title}</Text>
+                  <View style={styles.taskMetaRow}>
+                    <View style={styles.taskMetaItem}>
+                      <Text style={[styles.metaIcon, { color: theme.colors.onSurfaceVariant }]}>⏱</Text>
+                      <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>{task.time}</Text>
+                    </View>
+                    <View style={styles.taskMetaItem}>
+                      <Text style={[styles.metaIcon, { color: theme.colors.onSurfaceVariant }]}>📁</Text>
+                      <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>{task.category}</Text>
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.taskMetaItem}>
-                  <Text style={[styles.metaIcon, { color: theme.colors.onSurfaceVariant }]}>📍</Text>
-                  <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>Boardroom A</Text>
-                </View>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.moreButton}>
-              <Text style={[styles.moreIcon, { color: theme.colors.onSurfaceVariant }]}>⋮</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Medium Priority Task */}
-          <View style={[styles.agendaItem, { backgroundColor: theme.colors.surfaceContainerLowest, borderLeftColor: theme.colors.secondaryContainer }]}>
-            <View style={styles.agendaItemContent}>
-              <View style={[styles.priorityBadge, { backgroundColor: 'rgba(51, 160, 253, 0.1)' }]}>
-                <Text style={[styles.priorityBadgeText, { color: theme.colors.secondary }]}>MEDIUM PRIORITY</Text>
-              </View>
-              <Text style={[styles.taskTitle, { color: theme.colors.onSurface }]}>Review Q4 Goals</Text>
-              <View style={styles.taskMetaRow}>
-                <View style={styles.taskMetaItem}>
-                  <Text style={[styles.metaIcon, { color: theme.colors.onSurfaceVariant }]}>⏱</Text>
-                  <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>16:45 - 17:30</Text>
-                </View>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.moreButton}>
-              <Text style={[styles.moreIcon, { color: theme.colors.onSurfaceVariant }]}>⋮</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Low Priority Task */}
-          <View style={[styles.agendaItem, { backgroundColor: theme.colors.surfaceContainerLowest, borderLeftColor: theme.colors.tertiaryContainer }]}>
-            <View style={styles.agendaItemContent}>
-              <View style={[styles.priorityBadge, { backgroundColor: 'rgba(0, 105, 27, 0.1)' }]}>
-                <Text style={[styles.priorityBadgeText, { color: theme.colors.tertiary }]}>LOW PRIORITY</Text>
-              </View>
-              <Text style={[styles.taskTitle, { color: theme.colors.onSurface }]}>Team Lunch</Text>
-              <View style={styles.taskMetaRow}>
-                <View style={styles.taskMetaItem}>
-                  <Text style={[styles.metaIcon, { color: theme.colors.onSurfaceVariant }]}>⏱</Text>
-                  <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>12:30 - 13:30</Text>
-                </View>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.moreButton}>
-              <Text style={[styles.moreIcon, { color: theme.colors.onSurfaceVariant }]}>⋮</Text>
-            </TouchableOpacity>
-          </View>
+                <TouchableOpacity style={styles.moreButton}>
+                  <Text style={[styles.moreIcon, { color: theme.colors.onSurfaceVariant }]}>⋮</Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
       </ScrollView>
 
       {/* FAB */}
-      <TouchableOpacity style={[styles.fab, { backgroundColor: theme.colors.primary }]}>
+      <TouchableOpacity 
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        onPress={() => navigation.navigate('CreateTask')}
+      >
         <Text style={[styles.fabIcon, { color: theme.colors.onPrimary }]}>+</Text>
       </TouchableOpacity>
     </SafeAreaView>

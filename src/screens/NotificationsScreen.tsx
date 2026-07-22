@@ -1,18 +1,23 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeProvider';
 
 export const NotificationsScreen = () => {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Top App Bar */}
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
         <View style={styles.headerLeft}>
-          <View style={[styles.iconContainer, { backgroundColor: theme.colors.primaryContainer }]}>
-            <Text style={[styles.headerIcon, { color: theme.colors.onPrimaryContainer }]}>👤</Text>
-          </View>
+          <TouchableOpacity 
+            style={[styles.iconContainer, { backgroundColor: theme.colors.primaryContainer }]}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={[styles.headerIcon, { color: theme.colors.onPrimaryContainer }]}>←</Text>
+          </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.primary }]}>Notifications</Text>
         </View>
         <TouchableOpacity style={styles.iconButton}>
@@ -115,7 +120,10 @@ export const NotificationsScreen = () => {
       </ScrollView>
 
       {/* FAB */}
-      <TouchableOpacity style={[styles.fab, { backgroundColor: theme.colors.primary }]}>
+      <TouchableOpacity 
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        onPress={() => navigation.navigate('CreateTask')}
+      >
         <Text style={[styles.fabIcon, { color: theme.colors.onPrimary }]}>+</Text>
       </TouchableOpacity>
     </SafeAreaView>

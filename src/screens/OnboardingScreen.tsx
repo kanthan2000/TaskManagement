@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Animated, Dimensions, SafeAreaView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeProvider';
 
 const { width } = Dimensions.get('window');
@@ -26,6 +27,7 @@ const ONBOARDING_DATA = [
 ];
 
 export const OnboardingScreen = () => {
+  const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -34,13 +36,12 @@ export const OnboardingScreen = () => {
     if (currentIndex < ONBOARDING_DATA.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      // Navigate to Home or Login
-      console.log('Navigate to Dashboard');
+      navigation.replace('MainTabs');
     }
   };
 
   const handleSkip = () => {
-    setCurrentIndex(ONBOARDING_DATA.length - 1);
+    navigation.replace('MainTabs');
   };
 
   const renderItem = ({ item, index }: any) => {
